@@ -24,6 +24,7 @@ import { LostOwnership, withOwnedTransaction } from './leadership';
 import { memoryOf } from './observe';
 import { publicMessage } from './http';
 import { notifyTeamKills } from './webhook-delivery';
+import { actOnHeadshots } from './headshot-live';
 import { isDemoServer } from './env';
 import { drainMockFeed } from './mockgame';
 import { ingestBatch } from './feed';
@@ -42,6 +43,13 @@ export async function onKillsIngested(
 	} catch (err) {
 		if (!(err instanceof LostOwnership))
 			console.warn(`[warcon] kill-rate rules on ${serverId}:`, publicMessage(err));
+	}
+	// SGK: the Headshot anti-cheat rule sees every batch too.
+	try {
+		await actOnHeadshots(env, serverId, kills);
+	} catch (err) {
+		if (!(err instanceof LostOwnership))
+			console.warn(`[warcon] headshot rules on ${serverId}:`, publicMessage(err));
 	}
 	const teamKills = kills.filter((k) => k.teamKill && k.killer);
 	if (!teamKills.length) return;

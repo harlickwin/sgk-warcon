@@ -22,6 +22,7 @@
 		['/rotation', 'Map rotation'],
 		['/config', 'Config', 'config.apply'],
 		['/automation', 'Automation', 'automation.manage'],
+		['/anticheat', 'Anti-cheat', 'automation.manage'],
 		['/analytics', 'Analytics'],
 		['/leaderboard', 'Leaderboards'],
 		['/log', 'Server log', 'audit.read']

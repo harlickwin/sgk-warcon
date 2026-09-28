@@ -9,6 +9,7 @@ import { playerMarks, servers, webhooks, type AuditRow, type WebhookRow } from '
 import { OWNERS_ROWS } from './audit-rows';
 import { causeLabel } from '$lib/causes';
 import type { KillView } from '$lib/types';
+import { buildHeadshotEmbed } from './headshot-embed';
 
 export const WEBHOOK_EVENTS = [
 	'bans',
@@ -18,7 +19,8 @@ export const WEBHOOK_EVENTS = [
 	'management',
 	'auth',
 	'teamkills',
-	'watched'
+	'watched',
+	'anticheat'
 ] as const;
 export type WebhookEvent = (typeof WEBHOOK_EVENTS)[number];
 export const WEBHOOK_EVENT_LABELS: Record<WebhookEvent, string> = {
@@ -29,7 +31,8 @@ export const WEBHOOK_EVENT_LABELS: Record<WebhookEvent, string> = {
 	management: 'Servers, members, invite links, accounts',
 	auth: 'Sign-ins and sign-in failures',
 	teamkills: 'Team kills (from the kill feed)',
-	watched: 'Watched players joining'
+	watched: 'Watched players joining',
+	anticheat: 'Anti-cheat alerts (headshot rules, with evidence)'
 };
 
 /** Which event class an audit row belongs to. */
@@ -38,6 +41,7 @@ export function classify(row: Pick<AuditRow, 'category' | 'action'>): WebhookEve
 		case 'rcon':
 			return row.action === 'rcon.ban' || row.action === 'rcon.unban' ? 'bans' : 'commands';
 		case 'trigger':
+			if (row.action === 'trigger.headshot') return 'anticheat';
 			return 'triggers';
 		case 'player':
 			return 'players';
@@ -145,6 +149,7 @@ const ACTION_TITLES: Record<string, string> = {
 	'trigger.match_broadcast': 'Trigger · match broadcast',
 	'trigger.name_filter': 'Trigger · name filter',
 	'trigger.kill_rate': 'Trigger · kill rate watch',
+	'trigger.headshot': 'Anti-cheat · headshot rule',
 	'player.note': 'Player note',
 	'player.watch': 'Watchlist',
 	'list.add': 'Org list · added',
@@ -459,7 +464,14 @@ export async function notifyWebhooks(env: Env, row: AuditRow): Promise<void> {
 			if (!events.includes(event)) continue;
 			const only = hook.serverIds as string[] | null;
 			if (only && only.length && (!row.serverId || !only.includes(row.serverId))) continue;
-			embed ??= withDossierLink(env, row, buildEmbed(env.APP_NAME || 'Warcon', row));
+			embed ??=
+				row.action === 'trigger.headshot'
+					? buildHeadshotEmbed(
+							env.APP_NAME || 'Warcon',
+							row,
+							dossierUrl(env.ORIGIN, row.serverId ?? '', row.target)
+						)
+					: withDossierLink(env, row, buildEmbed(env.APP_NAME || 'Warcon', row));
 			enqueue(env, hook, embed);
 		}
 	} catch (err) {
