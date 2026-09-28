@@ -13,7 +13,7 @@ setup.
 | Service  | Source                                   | Notes                                                                            |
 | -------- | ---------------------------------------- | -------------------------------------------------------------------------------- |
 | `db`     | image `timescale/timescaledb:2.30.0-pg18` | Volume `db-volume` mounted at `/var/lib/postgresql`. Keep the tag in step with `docker-compose.yml`. |
-| `warcon` | this repo, branch `main` (currently `phase1-railway` until PR 1 merges), `Dockerfile` | `WARCON_ROLE=all`: web panel and worker in one process. Public domain on port 3000. |
+| `warcon` | this repo, branch `main`, `Dockerfile` | `WARCON_ROLE=all`: web panel and worker in one process. Public domain on port 3000. |
 
 `railway.json` holds the `warcon` build and deploy settings: Dockerfile build, health check on
 `/api/health`, restart always, **never sleep**, and one replica in Singapore. The `db` settings
