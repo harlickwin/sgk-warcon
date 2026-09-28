@@ -73,7 +73,7 @@ export function validateHeadshot(c: Record<string, unknown>): HeadshotConfig {
 	const cfg: HeadshotConfig = {
 		burst: {
 			mode: mode(burst.mode, 'watch', 'Headshot burst'),
-			kills: int(burst.kills, 5, 2, 50),
+			kills: int(burst.kills, 8, 2, 50),
 			seconds: int(burst.seconds, 10, 1, 120)
 		},
 		ratio: {

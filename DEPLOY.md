@@ -121,7 +121,7 @@ Our addition to upstream: the **Headshot anti-cheat** automation rule. The code 
 
 | Rule     | Default trigger                                                                          |
 | -------- | ---------------------------------------------------------------------------------------- |
-| HS_BURST | ≥ 5 headshot kills by one player within 10 s                                             |
+| HS_BURST | ≥ 8 headshot kills by one player within 10 s                                             |
 | HS_RATIO | ≥ 90% headshots over ≥ 15 kills in a rolling 5 min (never < 8)                           |
 | HS_RANGE | a headshot beyond the limit: Glock 17 80 m, M500 60 m, SMG 120 m (no SMG seen yet)       |
 | REPEAT   | any rule tripping again within 24 h is marked repeat and alerts even inside the cooldown |

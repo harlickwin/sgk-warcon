@@ -60,7 +60,7 @@ export function headshotFormOf(config: unknown): HeadshotForm {
 	const p = rec(c.repeat);
 	const classes = Array.isArray(g.classes) ? (g.classes as RangeClass[]) : DEFAULT_RANGE_CLASSES;
 	return {
-		burst: { mode: md(b.mode, 'watch'), kills: num(b.kills, 5), seconds: num(b.seconds, 10) },
+		burst: { mode: md(b.mode, 'watch'), kills: num(b.kills, 8), seconds: num(b.seconds, 10) },
 		ratio: {
 			mode: md(r.mode, 'watch'),
 			pct: num(r.pct, 90),

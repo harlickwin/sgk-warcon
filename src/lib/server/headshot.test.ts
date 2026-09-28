@@ -36,7 +36,7 @@ const k = (
 describe('validateHeadshot', () => {
 	test('the brief’s defaults, all watch', () => {
 		const c = cfg();
-		expect(c.burst).toEqual({ mode: 'watch', kills: 5, seconds: 10 });
+		expect(c.burst).toEqual({ mode: 'watch', kills: 8, seconds: 10 });
 		expect(c.ratio).toEqual({ mode: 'watch', pct: 90, minKills: 15, windowMinutes: 5 });
 		expect(c.repeat).toEqual({ mode: 'watch', windowHours: 24 });
 		expect(c.range.classes.map((x) => x.name)).toEqual(['Pistol', 'SMG', 'Shotgun']);
@@ -102,34 +102,23 @@ describe('hsEligible', () => {
 });
 
 describe('HS_BURST', () => {
-	test('5 headshot kills in 10 s trips once', () => {
-		const trips = headshotReplay(
-			cfg(),
-			[0, 2, 4, 6, 8].map((s) => k(CHEAT, s, true))
-		);
+	const at = (...s: number[]) => s.map((x) => k(CHEAT, x, true));
+	test('8 headshot kills in 10 s trips once', () => {
+		const trips = headshotReplay(cfg(), at(0, 1, 2, 3, 4, 5, 6, 7));
 		expect(trips.map((t) => t.rule)).toEqual(['HS_BURST']);
-		expect(trips[0].evidence).toHaveLength(5);
-		expect(trips[0].verdict).toBe('5 headshot kills in 8 s');
+		expect(trips[0].evidence).toHaveLength(8);
+		expect(trips[0].verdict).toBe('8 headshot kills in 7 s');
 	});
-	test('4 in 10 s, or 5 spread over 15 s, do not', () => {
-		expect(
-			headshotReplay(
-				cfg(),
-				[0, 2, 4, 6].map((s) => k(CHEAT, s, true))
-			)
-		).toEqual([]);
-		expect(
-			headshotReplay(
-				cfg(),
-				[0, 3.5, 7, 10.5, 14].map((s) => k(CHEAT, s, true))
-			)
-		).toEqual([]);
+	test('7 in 10 s, or 8 spread over 15 s, do not', () => {
+		expect(headshotReplay(cfg(), at(0, 1, 2, 3, 4, 5, 6))).toEqual([]);
+		expect(headshotReplay(cfg(), at(0, 2, 4, 6, 8, 10, 12, 14))).toEqual([]);
 	});
-	test('a burst spends its kills: a sixth headshot right after is not a second trip', () => {
-		const trips = headshotReplay(
-			cfg(),
-			[0, 1, 2, 3, 4, 5].map((s) => k(CHEAT, s, true))
-		);
+	test('the count is configurable: 5 in 10 s trips at kills 5', () => {
+		const trips = headshotReplay(cfg({ burst: { kills: 5 } }), at(0, 2, 4, 6, 8));
+		expect(trips.map((t) => t.verdict)).toEqual(['5 headshot kills in 8 s']);
+	});
+	test('a burst spends its kills: a ninth headshot right after is not a second trip', () => {
+		const trips = headshotReplay(cfg(), at(0, 1, 2, 3, 4, 5, 6, 7, 8));
 		expect(trips.filter((t) => t.rule === 'HS_BURST')).toHaveLength(1);
 	});
 	test('an LMG multi-kill on a group, body shots, does not trip', () => {
