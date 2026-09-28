@@ -87,6 +87,8 @@ import { DEFAULT_SCORE_CAP, scoreCapOf } from '$lib/match';
 import { settings } from './settings';
 import { riskPerformanceFor } from './leaderboards';
 import type { RiskPerformance } from './risk';
+import { replayHeadshots } from './headshot-replay';
+import type { HeadshotConfig } from './headshot';
 
 export * from './trigger-rules';
 
@@ -142,7 +144,8 @@ const RULE_NEEDS: Record<Exclude<TriggerKind, 'seed_reward'>, [Capability, strin
 	name_filter: ['players.moderate', 'kicks players'],
 	ping_kick: ['players.moderate', 'kicks players'],
 	team_kill: ['players.moderate', 'kicks players'],
-	kill_rate: ['players.moderate', 'flags players']
+	kill_rate: ['players.moderate', 'flags players'],
+	headshot: ['players.moderate', 'flags players']
 };
 
 /** What one rule needs of whoever saves it. The Seeding reward reserves slots: here, or on the organisation's list. */
@@ -458,6 +461,7 @@ export async function evaluateTriggers(
 					break;
 				case 'team_kill':
 				case 'kill_rate':
+				case 'headshot':
 					// Acted on as kills arrive (feed-events.ts), not per observation.
 					break;
 				case 'seed_reward':
@@ -1239,6 +1243,20 @@ export async function dryRun(
 		result.notes.push(
 			`${rows.length} team kill${rows.length === 1 ? '' : 's'} in the window${rows.length === REPLAY_ROWS_MAX ? ` (the first ${REPLAY_ROWS_MAX} only)` : ''}, counted per killer within their session.`
 		);
+		return result;
+	}
+	if (kind === 'headshot') {
+		// SGK: the live rule's step over the window's kills; the Anti-cheat tab replays longer spans.
+		const r = await replayHeadshots(env, server.id, cfg as HeadshotConfig, from, to);
+		for (const t of r.trips)
+			push(
+				new Date(t.at),
+				`${t.alert ? 'alert' : 'log only'} ${t.name} (${t.steamId}): ${t.repeat ? 'REPEAT · ' : ''}${t.rule} ${t.verdict}`
+			);
+		result.notes.push(
+			`${r.eligible} of ${r.kills} kills in the window are judged (gun kills of the other side); ${r.alerts} trip${r.alerts === 1 ? '' : 's'} would alert.`
+		);
+		if (r.truncated) result.notes.push('Replayed the first kills of the window only.');
 		return result;
 	}
 	if (kind === 'kill_rate') {

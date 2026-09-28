@@ -10,10 +10,10 @@ setup.
 
 ## Services
 
-| Service  | Source                                   | Notes                                                                            |
-| -------- | ---------------------------------------- | -------------------------------------------------------------------------------- |
+| Service  | Source                                    | Notes                                                                                                |
+| -------- | ----------------------------------------- | ---------------------------------------------------------------------------------------------------- |
 | `db`     | image `timescale/timescaledb:2.30.0-pg18` | Volume `db-volume` mounted at `/var/lib/postgresql`. Keep the tag in step with `docker-compose.yml`. |
-| `warcon` | this repo, branch `main`, `Dockerfile` | `WARCON_ROLE=all`: web panel and worker in one process. Public domain on port 3000. |
+| `warcon` | this repo, branch `main`, `Dockerfile`    | `WARCON_ROLE=all`: web panel and worker in one process. Public domain on port 3000.                  |
 
 `railway.json` holds the `warcon` build and deploy settings: Dockerfile build, health check on
 `/api/health`, restart always, **never sleep**, and one replica in Singapore. The `db` settings
@@ -26,29 +26,29 @@ Every secret is set in Railway only. Never commit one.
 
 `db`:
 
-| Variable            | Value                                |
-| ------------------- | ------------------------------------ |
-| `POSTGRES_USER`     | `warcon`                             |
-| `POSTGRES_PASSWORD` | random hex (generated at setup)      |
-| `POSTGRES_DB`       | `warcon`                             |
+| Variable            | Value                           |
+| ------------------- | ------------------------------- |
+| `POSTGRES_USER`     | `warcon`                        |
+| `POSTGRES_PASSWORD` | random hex (generated at setup) |
+| `POSTGRES_DB`       | `warcon`                        |
 
 `warcon`:
 
-| Variable             | Value                                   | Why                                                          |
-| -------------------- | --------------------------------------- | ------------------------------------------------------------ |
-| `PGHOST`             | `${{db.RAILWAY_PRIVATE_DOMAIN}}`        | Private network (`db.railway.internal`)                      |
-| `PGPORT`             | `5432`                                  |                                                              |
-| `PGUSER` / `PGPASSWORD` / `PGDATABASE` | `${{db.POSTGRES_USER}}` etc. | References, so a password rotation on `db` flows through     |
-| `ORIGIN`             | `https://${{RAILWAY_PUBLIC_DOMAIN}}`    | Must be the exact URL people open, and is the kill-feed `Url` |
-| `WARCON_ROLE`        | `all`                                   | Serve, run the worker in-process and migrate on start        |
-| `PORT`               | `3000`                                  |                                                              |
-| `RELAY_URL` / `WORKER_PORT` | `http://localhost:7700` / `7700` | Only used by the split roles; harmless under `all`           |
-| `ADDRESS_HEADER`     | `x-real-ip`                             | The real client IP behind Railway's proxy, for rate limits   |
-| `WARCON_COMMIT`      | `${{RAILWAY_GIT_COMMIT_SHA}}`           | The commit shown on the Admin overview                       |
-| `BETTER_AUTH_SECRET` | `openssl rand -base64 32`               | Signs sessions                                               |
-| `ENCRYPTION_KEY`     | `openssl rand -base64 32`               | **Encrypts stored RCON passwords and the feed token. Back it up.** If it is lost, every server's RCON password must be entered again. |
-| `RELAY_SECRET`       | random hex                              | Only used by the split roles                                 |
-| `SETUP_TOKEN`        | random hex                              | Needed once, for first-run owner setup, so nobody else can claim the panel |
+| Variable                               | Value                                | Why                                                                                                                                   |
+| -------------------------------------- | ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------- |
+| `PGHOST`                               | `${{db.RAILWAY_PRIVATE_DOMAIN}}`     | Private network (`db.railway.internal`)                                                                                               |
+| `PGPORT`                               | `5432`                               |                                                                                                                                       |
+| `PGUSER` / `PGPASSWORD` / `PGDATABASE` | `${{db.POSTGRES_USER}}` etc.         | References, so a password rotation on `db` flows through                                                                              |
+| `ORIGIN`                               | `https://${{RAILWAY_PUBLIC_DOMAIN}}` | Must be the exact URL people open, and is the kill-feed `Url`                                                                         |
+| `WARCON_ROLE`                          | `all`                                | Serve, run the worker in-process and migrate on start                                                                                 |
+| `PORT`                                 | `3000`                               |                                                                                                                                       |
+| `RELAY_URL` / `WORKER_PORT`            | `http://localhost:7700` / `7700`     | Only used by the split roles; harmless under `all`                                                                                    |
+| `ADDRESS_HEADER`                       | `x-real-ip`                          | The real client IP behind Railway's proxy, for rate limits                                                                            |
+| `WARCON_COMMIT`                        | `${{RAILWAY_GIT_COMMIT_SHA}}`        | The commit shown on the Admin overview                                                                                                |
+| `BETTER_AUTH_SECRET`                   | `openssl rand -base64 32`            | Signs sessions                                                                                                                        |
+| `ENCRYPTION_KEY`                       | `openssl rand -base64 32`            | **Encrypts stored RCON passwords and the feed token. Back it up.** If it is lost, every server's RCON password must be entered again. |
+| `RELAY_SECRET`                         | random hex                           | Only used by the split roles                                                                                                          |
+| `SETUP_TOKEN`                          | random hex                           | Needed once, for first-run owner setup, so nobody else can claim the panel                                                            |
 
 To read a value: `railway variables --service warcon --kv`, or in the dashboard under the service's
 Variables tab.

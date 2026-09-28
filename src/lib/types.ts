@@ -485,7 +485,8 @@ export type TriggerKind =
 	| 'seed_reward'
 	| 'match_broadcast'
 	| 'name_filter'
-	| 'kill_rate';
+	| 'kill_rate'
+	| 'headshot';
 
 export interface TriggerView {
 	id: string;

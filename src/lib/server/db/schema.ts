@@ -669,7 +669,8 @@ export const triggers = pgTable(
 				'seed_reward',
 				'match_broadcast',
 				'name_filter',
-				'kill_rate'
+				'kill_rate',
+				'headshot'
 			]
 		}).notNull(),
 		name: text('name').notNull(),
@@ -1073,6 +1074,42 @@ export const workerOwnership = pgTable('worker_ownership', {
 	acquiredAt: ts('acquired_at').notNull().defaultNow(),
 	leaseUntil: ts('lease_until').notNull()
 });
+
+/**
+ * SGK: every trip of the Headshot anti-cheat rule, alerted or not, with the kills it was judged
+ * on, so staff can review false positives and tune thresholds. Kept for good (a few rows a day).
+ */
+export const hsTrips = pgTable(
+	'hs_trips',
+	{
+		id: bigserial('id', { mode: 'number' }).primaryKey(),
+		ts: ts('ts').notNull().defaultNow(),
+		serverId: text('server_id')
+			.notNull()
+			.references(() => servers.id, { onDelete: 'cascade' }),
+		triggerId: text('trigger_id'),
+		/** HS_BURST | HS_RATIO | HS_RANGE */
+		rule: text('rule').notNull(),
+		steamId: text('steam_id').notNull(),
+		name: text('name').notNull().default(''),
+		/** the rule's mode when it tripped: watch | enforce */
+		mode: text('mode').notNull(),
+		/** an earlier trip by the same player inside the repeat window */
+		repeat: boolean('repeat').notNull().default(false),
+		/** false: inside the alert cooldown, logged only */
+		alerted: boolean('alerted').notNull().default(false),
+		verdict: text('verdict').notNull().default(''),
+		/** the kills' event ids, for joining back to `kills` */
+		killIds: jsonb('kill_ids').notNull(),
+		/** the kills as the rule saw them (time, victim, weapon, distance, headshot) */
+		evidence: jsonb('evidence').notNull()
+	},
+	(t) => [
+		index('hs_trips_server_ts_idx').on(t.serverId, t.ts.desc()),
+		index('hs_trips_player_idx').on(t.steamId, t.ts.desc())
+	]
+);
+export type HsTripRow = typeof hsTrips.$inferSelect;
 
 export type ServerRow = typeof servers.$inferSelect;
 export type OrgRow = typeof organizations.$inferSelect;

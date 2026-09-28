@@ -246,6 +246,13 @@
       "when": 1790347290706,
       "tag": "0034_json_webhooks",
       "breakpoints": true
+    },
+    {
+      "idx": 35,
+      "version": "7",
+      "when": 1790593412882,
+      "tag": "0035_hs_trips",
+      "breakpoints": true
     }
   ]
 }

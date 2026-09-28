@@ -23,6 +23,7 @@ import { gateway } from './gateway';
 import { deliveries } from './metrics';
 import { NAME_FLAG } from './name-filter';
 import { KILL_RATE_FLAG } from './kill-rate';
+import { HEADSHOT_FLAG } from './headshot';
 import { queueEvent } from './json-webhook-queue';
 import { seedRewardGranted } from './json-webhook-events';
 import type { OutboxView } from '$lib/types';
@@ -206,7 +207,7 @@ async function deliverOne(env: Env, row: OutboxRow): Promise<void> {
 	if (row.action === 'seed_reward') return deliverSeedReward(env, row);
 	// An alert-only Name filter match or a Kill rate flag: the audit row (and its Discord card) is
 	// the whole delivery.
-	if (row.action === NAME_FLAG || row.action === KILL_RATE_FLAG)
+	if (row.action === NAME_FLAG || row.action === KILL_RATE_FLAG || row.action === HEADSHOT_FLAG)
 		return finish(env, row, 'delivered', row.okMessage);
 	const early = skipReason(row, memoryOf(row.serverId));
 	if (early) return finish(env, row, 'skipped', early);

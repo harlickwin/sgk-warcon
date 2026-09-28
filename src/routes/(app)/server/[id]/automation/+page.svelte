@@ -13,6 +13,12 @@
 	import SortHeader from '$lib/components/SortHeader.svelte';
 	import { TableSort, matches } from '$lib/table.svelte';
 	import { watchLive } from '$lib/live';
+	import {
+		headshotConfigOf,
+		headshotFormOf,
+		headshotSummary,
+		type HeadshotForm
+	} from '$lib/headshot';
 	import type {
 		DryRunResult,
 		MapSelection,
@@ -174,6 +180,13 @@
 			blurb: 'Flag players who get kills too fast, or too many headshots, for staff to check.'
 		},
 		{
+			kind: 'headshot',
+			group: 'Players',
+			label: 'Headshot anti-cheat',
+			blurb:
+				'Alert on headshot bursts, impossible headshot shares and out-of-range headshots, with the kills as evidence.'
+		},
+		{
 			kind: 'seed_reward',
 			group: 'Players',
 			label: 'Seeding reward',
@@ -189,7 +202,9 @@
 	const GROUPS: Group[] = ['Messages', 'Players', 'Server'];
 	/** The outbox action as the table shows it: a flag sends nothing to the game, so it reads as one. */
 	const actionLabel = (action: string) =>
-		action === 'name_flag' || action === 'kill_rate_flag' ? 'flag' : action;
+		action === 'name_flag' || action === 'kill_rate_flag' || action === 'headshot_flag'
+			? 'flag'
+			: action;
 	const label = (kind: TriggerKind) => KINDS.find((k) => k.kind === kind)?.label ?? kind;
 	const blurb = (kind: TriggerKind) => KINDS.find((k) => k.kind === kind)?.blurb ?? '';
 	/** Why a kind cannot run on this server yet, or '' when it can. */
@@ -197,6 +212,7 @@
 		switch (kind) {
 			case 'team_kill':
 			case 'kill_rate':
+			case 'headshot':
 				return data.feed
 					? ''
 					: 'Needs the kill feed, which is off on this server. Turn it on under Config.';
@@ -220,7 +236,7 @@
 	let canSlotOrg = $derived(can(data.server.caps, 'lists.reserve'));
 	/** A kind that lacks what it needs stays in the menu, greyed, with the reason in a few words. */
 	const short = (kind: TriggerKind): string =>
-		kind === 'team_kill' || kind === 'kill_rate'
+		kind === 'team_kill' || kind === 'kill_rate' || kind === 'headshot'
 			? 'needs the kill feed'
 			: kind === 'risk_kick'
 				? 'needs a Steam key'
@@ -344,6 +360,7 @@
 		maxKills: number;
 		headshotPct: number;
 		headshotMinKills: number;
+		hs: HeadshotForm;
 	}
 	/** The alphabets a Latin policy can let in, by the name the rule stores and the one people use. */
 	const SCRIPTS: [string, string][] = [
@@ -479,7 +496,8 @@
 			windowMinutes: n('windowMinutes', 5),
 			maxKills: n('maxKills', 25),
 			headshotPct: n('headshotPct', 70),
-			headshotMinKills: n('headshotMinKills', 15)
+			headshotMinKills: n('headshotMinKills', 15),
+			hs: headshotFormOf(kind === 'headshot' ? c : {})
 		};
 		dry = null;
 		pendingSel =
@@ -591,6 +609,8 @@
 					headshotMinKills: Number(f.headshotMinKills),
 					cooldownMinutes: Number(f.cooldownMinutes)
 				};
+			case 'headshot':
+				return { ...headshotConfigOf(f.hs) };
 			case 'seed_reward':
 				return {
 					lowAt: Number(f.lowAt),
@@ -755,6 +775,8 @@
 					.filter(Boolean)
 					.join(' or ')
 					.concat(` in ${c.windowMinutes} min · flag only · again after ${c.cooldownMinutes} min`);
+			case 'headshot':
+				return headshotSummary(c);
 			case 'seed_reward':
 				return `${c.minutes} min with ${c.lowAt} or fewer on${c.untilFull === false ? '' : `, staying until ${typeof c.fullAt === 'number' ? `${c.fullAt}+ on` : 'it fills'}`}, within ${c.windowDays} day${c.windowDays === 1 ? '' : 's'} · slot ${c.scope === 'server' ? 'here' : 'on every server'} for ${c.slotDays} day${c.slotDays === 1 ? '' : 's'}${c.message ? ' · with a whisper' : ''}`;
 		}
@@ -1670,6 +1692,173 @@
 					<p class="note">
 						Counts kills with hand-held weapons from the kill feed. A flag goes to the audit trail
 						and Discord; nobody is kicked.
+					</p>
+				{:else if f.kind === 'headshot'}
+					{#snippet modeSelect(label: string, get: () => string, set: (v: string) => void)}
+						<select
+							class="input w-28"
+							aria-label="{label}: mode"
+							value={get()}
+							onchange={(e) => set(e.currentTarget.value)}
+						>
+							<option value="off">off</option>
+							<option value="watch">watch</option>
+							<option value="enforce" disabled>enforce (later)</option>
+						</select>
+					{/snippet}
+					<fieldset class="space-y-1.5 text-[13px]">
+						<legend class="field-label">HS_BURST · headshot burst</legend>
+						<div class="flex flex-wrap items-center gap-2">
+							{@render modeSelect(
+								'Headshot burst',
+								() => f.hs.burst.mode,
+								(v) => (f.hs.burst.mode = v as typeof f.hs.burst.mode)
+							)}
+							at
+							<input
+								class="input w-20 text-right"
+								type="number"
+								min="2"
+								max="50"
+								bind:value={f.hs.burst.kills}
+								aria-label="Burst: headshot kills"
+							/>
+							headshot kills within
+							<input
+								class="input w-20 text-right"
+								type="number"
+								min="1"
+								max="120"
+								bind:value={f.hs.burst.seconds}
+								aria-label="Burst: seconds"
+							/>
+							seconds
+						</div>
+					</fieldset>
+					<fieldset class="space-y-1.5 text-[13px]">
+						<legend class="field-label">HS_RATIO · headshot ratio</legend>
+						<div class="flex flex-wrap items-center gap-2">
+							{@render modeSelect(
+								'Headshot ratio',
+								() => f.hs.ratio.mode,
+								(v) => (f.hs.ratio.mode = v as typeof f.hs.ratio.mode)
+							)}
+							at
+							<input
+								class="input w-20 text-right"
+								type="number"
+								min="50"
+								max="100"
+								bind:value={f.hs.ratio.pct}
+								aria-label="Ratio: percent headshots"
+							/>
+							% headshots over at least
+							<input
+								class="input w-20 text-right"
+								type="number"
+								min="8"
+								max="500"
+								bind:value={f.hs.ratio.minKills}
+								aria-label="Ratio: minimum kills"
+							/>
+							kills in
+							<input
+								class="input w-20 text-right"
+								type="number"
+								min="1"
+								max="60"
+								bind:value={f.hs.ratio.windowMinutes}
+								aria-label="Ratio: window minutes"
+							/>
+							minutes <span class="text-mist-600">(never below 8 kills)</span>
+						</div>
+					</fieldset>
+					<fieldset class="space-y-1.5 text-[13px]">
+						<legend class="field-label">HS_RANGE · impossible range</legend>
+						<div class="flex flex-wrap items-center gap-2">
+							{@render modeSelect(
+								'Impossible range',
+								() => f.hs.range.mode,
+								(v) => (f.hs.range.mode = v as typeof f.hs.range.mode)
+							)}
+							a headshot beyond the class's limit
+						</div>
+						{#each f.hs.range.classes as cls, i (i)}
+							<div class="flex flex-wrap items-start gap-2">
+								<input
+									class="input w-28"
+									bind:value={cls.name}
+									aria-label="Range class {i + 1}: name"
+								/>
+								<textarea
+									class="input min-w-56 flex-1 font-mono text-[12px]"
+									rows="2"
+									bind:value={cls.causes}
+									placeholder="Id.Item.Glock17 (one per line)"
+									aria-label="Range class {i + 1}: weapon causes"></textarea>
+								<input
+									class="input w-20 text-right"
+									type="number"
+									min="5"
+									max="2000"
+									bind:value={cls.maxM}
+									aria-label="Range class {i + 1}: limit in metres"
+								/>
+								m
+								<button
+									type="button"
+									class="btn btn-sm"
+									onclick={() => f.hs.range.classes.splice(i, 1)}>Remove</button
+								>
+							</div>
+						{/each}
+						<button
+							type="button"
+							class="btn btn-sm"
+							onclick={() => f.hs.range.classes.push({ name: 'New class', causes: '', maxM: 100 })}
+							>Add weapon class</button
+						>
+					</fieldset>
+					<fieldset class="space-y-1.5 text-[13px]">
+						<legend class="field-label">REPEAT · repeat offender</legend>
+						<div class="flex flex-wrap items-center gap-2">
+							{@render modeSelect(
+								'Repeat offender',
+								() => f.hs.repeat.mode,
+								(v) => (f.hs.repeat.mode = v as typeof f.hs.repeat.mode)
+							)}
+							any rule tripping again within
+							<input
+								class="input w-20 text-right"
+								type="number"
+								min="1"
+								max="336"
+								bind:value={f.hs.repeat.windowHours}
+								aria-label="Repeat: window hours"
+							/>
+							hours is marked repeat
+						</div>
+					</fieldset>
+					<fieldset class="space-y-1.5 text-[13px]">
+						<legend class="field-label">Alert the same player for the same rule again after</legend>
+						<div class="flex flex-wrap items-center gap-2">
+							<input
+								class="input w-20 text-right"
+								type="number"
+								min="1"
+								max="1440"
+								bind:value={f.hs.alertCooldownMinutes}
+								aria-label="Alert cooldown, minutes"
+								required
+							/>
+							minutes <span class="text-mist-600">(trips inside it are still logged)</span>
+						</div>
+					</fieldset>
+					<p class="note">
+						Judges gun kills of the other side from the kill feed: team kills, suicides, vehicles,
+						explosives and melee are left out. Every trip is logged on the Anti-cheat tab; alerts go
+						to Discord channels that carry "Anti-cheat alerts". Nobody is kicked while rules are in
+						watch.
 					</p>
 				{:else if f.kind === 'seed_reward'}
 					<fieldset class="space-y-1.5 text-[13px]">

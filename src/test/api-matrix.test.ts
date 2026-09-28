@@ -148,7 +148,9 @@ const MATRIX: Record<string, Policy | typeof PER_LIST> = {
 	'POST api/servers/[id]/triggers': 'cap:automation.manage',
 	'PATCH api/servers/[id]/triggers/[triggerId]': 'cap:automation.manage',
 	'DELETE api/servers/[id]/triggers/[triggerId]': 'cap:automation.manage',
-	'POST api/servers/[id]/triggers/dry-run': 'cap:automation.manage'
+	'POST api/servers/[id]/triggers/dry-run': 'cap:automation.manage',
+	'GET api/servers/[id]/anticheat': 'cap:automation.manage',
+	'POST api/servers/[id]/anticheat': 'cap:automation.manage'
 };
 
 /** Game actions go through one route; each is a line of its own in actions.test's table. */
