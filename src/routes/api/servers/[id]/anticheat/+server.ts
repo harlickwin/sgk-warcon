@@ -2,6 +2,8 @@
 // GET ?days=7&rule=HS_BURST&player=<steamId or name>&before=<id>: trips newest first (100 a page),
 // and counts per rule over the span. POST {days, config?}: replays the span's stored kills against
 // the given settings (default: this server's saved rule, else the defaults) and acts on nobody.
+// Reading trips needs Kick, kill, move (the moderators who act on them, and the Discord bot's key);
+// the replay runs rule settings, so it stays with Automation.
 import { and, desc, eq, gte, ilike, lt, or, sql, type SQL } from 'drizzle-orm';
 import { getEnv } from '$lib/server/env';
 import { ApiError, apiJson, int, param, readJson, route, str } from '$lib/server/http';
@@ -18,7 +20,7 @@ export const GET = route(async (event) => {
 		env,
 		event.locals,
 		param(event, 'id'),
-		'automation.manage'
+		'players.moderate'
 	);
 	const q = event.url.searchParams;
 	const days = int(q.get('days'), 7, 1, 365);
