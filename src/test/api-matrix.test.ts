@@ -149,7 +149,7 @@ const MATRIX: Record<string, Policy | typeof PER_LIST> = {
 	'PATCH api/servers/[id]/triggers/[triggerId]': 'cap:automation.manage',
 	'DELETE api/servers/[id]/triggers/[triggerId]': 'cap:automation.manage',
 	'POST api/servers/[id]/triggers/dry-run': 'cap:automation.manage',
-	'GET api/servers/[id]/anticheat': 'cap:automation.manage',
+	'GET api/servers/[id]/anticheat': 'cap:players.moderate',
 	'POST api/servers/[id]/anticheat': 'cap:automation.manage'
 };
 
